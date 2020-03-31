@@ -15,7 +15,8 @@ with open(MSID_CSV_fname, newline='') as csvfile:
 
 
 ## Input - list of fieldnames what are to be NGRAMMED, all others are text
-NgramList = ('MSID','TECHNICAL_NAME','DESCRIPTION')
+#NgramList = ('MSID','TECHNICAL_NAME','DESCRIPTION')
+NgramList = ('msid','technical_name','description')
 NgramMin = 3  ## Min characters to search on
 NgramMax = 8  ## Max characters to search on
 ## Create Empty Schema (could be pulled into a separate file and done once)
@@ -32,7 +33,8 @@ if not os.path.exists(MSID_index_dir):
 
  
  ## Add fields programmatically by parsing the first line of the file
-Searchable = ('MSID','TECHNICAL_NAME', 'DESCRIPTION')        ## List of fieldnames to search on, others are 
+#Searchable = ('MSID','TECHNICAL_NAME', 'DESCRIPTION')        ## List of fieldnames to search on, others are 
+Searchable = ('msid','technical_name','description')
 with open(MSID_CSV_fname, newline='') as csvfile:
     ix = index.create_in(MSID_index_dir, schema)
     writer = ix.writer() 

@@ -46,13 +46,14 @@ from PyQt5.QtCore import QDateTime, Qt, QTimer
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit,
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
         QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
-        QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
+        QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,QTextBrowser,
         QVBoxLayout, QWidget)
 from whoosh import index
 from whoosh.qparser import MultifieldParser
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED, NGRAM, NGRAMWORDS
 from whoosh.qparser import QueryParser
 from whoosh import scoring
+from whoosh import highlight
 from whoosh.collectors import TimeLimitCollector
 
 class WidgetGallery(QDialog):
@@ -67,10 +68,10 @@ class WidgetGallery(QDialog):
         searchLabel = QLabel("&Search:")
         searchLabel.setBuddy(searchTextBox)
         # Whoosh constructs
-        MSID_index_dir = 'MSID_idx_7'   #   Relative to current path, should make this a parameter                           
-        self.ix = index.open_dir(MSID_index_dir)                         #   TBD: add cmdline flag to set/use a particular index
+        index_dir = 'SSAWG_idx_2'   #   Relative to current path, should make this a parameter                           
+        self.ix = index.open_dir(index_dir)                         #   TBD: add cmdline flag to set/use a particular index
         #Searchable = ('MSID','TECHNICAL_NAME', 'DESCRIPTION')        ## List of fieldnames to search on, others are         
-        Searchable = ('msid','technical_name','description')
+        Searchable = ('Text',)
         self.qp = MultifieldParser(Searchable, schema=self.ix.schema)    
         self.MaxResults = 100
         self.useStylePaletteCheckBox = QCheckBox("&Use style's standard palette")
@@ -90,8 +91,10 @@ class WidgetGallery(QDialog):
         #disableWidgetsCheckBox.toggled.connect(self.topRightGroupBox.setDisabled)
         #disableWidgetsCheckBox.toggled.connect(self.bottomLeftTabWidget.setDisabled)
         #disableWidgetsCheckBox.toggled.connect(self.bottomRightGroupBox.setDisabled)
-        self.searchResults = QTextEdit()
-        
+        #self.searchResults = QTextEdit()
+        self.searchResults = QTextBrowser()
+        self.searchResults.OpenLinks = True
+        self.searchResults.OpenExternalLinks = True
         topLayout = QHBoxLayout()
         topLayout.addWidget(searchLabel)
         topLayout.addWidget(searchTextBox)
@@ -105,7 +108,7 @@ class WidgetGallery(QDialog):
         #mainLayout.setColumnStretch(1, 1)
         self.setLayout(mainLayout)
 
-        self.setWindowTitle("MSID Live Search")
+        self.setWindowTitle("SSAWG Live Search")
         QApplication.setStyle(QStyleFactory.create("Fusion"))
         self.changePalette()
         
@@ -121,10 +124,19 @@ class WidgetGallery(QDialog):
                 print("TIMEOUT!")
             results = c.results()            # partial results if hung                
             self.searchResults.clear()
-            if len(results)> 0:                
-                for res in results:    
-                    self.searchResults.append(res['msid'] + ' - ' + res['technical_name'])
-                    #self.searchResults.append(res['MSID'] + ' - ' + res['TECHNICAL_NAME'])
+            #my_cf = highlight.PinpointFragmenter(maxchars=100, surround=60)
+            my_cf = highlight.ContextFragmenter(maxchars=160, surround=30)
+            #my_cf = highlight.SentenceFragmenter(maxchars=200, sentencechars='\n')
+            results.fragmenter = my_cf
+            if len(results)> 0:
+                for res in results:
+                    res.fragmenter = my_cf
+                   # self.searchResults.append(res.highlights('Text',top=1) + '*--*\n' + res['MeetingLink']+ '\n')
+                    self.searchResults.append(res.highlights('Text',top=1))
+                    self.searchResults.append('-Link to Meeting -')
+                    self.searchResults.append(res['MeetingLink']+ '\n')
+                    self.searchResults.append('----------')
+                    self.searchResults.append('----------')
             cursor = self.searchResults.moveCursor(QtGui.QTextCursor.Start)            
             #self.searchResults.setTextCursor(cursor)
 
