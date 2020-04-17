@@ -52,8 +52,10 @@ from whoosh import index
 from whoosh.qparser import MultifieldParser
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED, NGRAM, NGRAMWORDS
 from whoosh.qparser import QueryParser
+from whoosh.qparser import FuzzyTermPlugin
 from whoosh import scoring
 from whoosh.collectors import TimeLimitCollector
+from whoosh.highlight import WholeFragmenter
 
 class WidgetGallery(QDialog):
     def __init__(self, parent=None):
@@ -67,29 +69,18 @@ class WidgetGallery(QDialog):
         searchLabel = QLabel("&Search:")
         searchLabel.setBuddy(searchTextBox)
         # Whoosh constructs
-        MSID_index_dir = 'MSID_idx_7'   #   Relative to current path, should make this a parameter                           
-        self.ix = index.open_dir(MSID_index_dir)                         #   TBD: add cmdline flag to set/use a particular index
-        #Searchable = ('MSID','TECHNICAL_NAME', 'DESCRIPTION')        ## List of fieldnames to search on, others are         
-        Searchable = ('msid','technical_name','description')
-        self.qp = MultifieldParser(Searchable, schema=self.ix.schema)    
+        # MSID_index_dir = 'MSID_idx_TEXTONLY'                             #   Currently hard-coded, should be configurable or passed at the command line   
+        MSID_index_dir = 'MSID_idx_TDB_CDB' 
+        self.ix = index.open_dir(MSID_index_dir)                         #  
+        Searchable = ('msid','technical_name','description')             # Currently hard-coded, should be configurable or passed at the command line
+        self.qp = MultifieldParser(Searchable, schema=self.ix.schema)    # Search all the specified fields 
         self.MaxResults = 100
+        searchTextBox.textChanged[str].connect(self.doSearch)            # hook up as-you-type event to query function
+        
+        # QT widgets,  layout and style
         self.useStylePaletteCheckBox = QCheckBox("&Use style's standard palette")
         self.useStylePaletteCheckBox.setChecked(True)
-
-        #disableWidgetsCheckBox = QCheckBox("&Disable widgets")
-
-        #self.createTopLeftGroupBox()
-        #self.createTopRightGroupBox()
-        #self.createBottomLeftTabWidget()
-        #self.createBottomRightGroupBox()
-        #self.createProgressBar()
-
-        searchTextBox.textChanged[str].connect(self.doSearch)
         self.useStylePaletteCheckBox.toggled.connect(self.changePalette)
-        #disableWidgetsCheckBox.toggled.connect(self.topLeftGroupBox.setDisabled)
-        #disableWidgetsCheckBox.toggled.connect(self.topRightGroupBox.setDisabled)
-        #disableWidgetsCheckBox.toggled.connect(self.bottomLeftTabWidget.setDisabled)
-        #disableWidgetsCheckBox.toggled.connect(self.bottomRightGroupBox.setDisabled)
         self.searchResults = QTextEdit()
         
         topLayout = QHBoxLayout()
@@ -99,10 +90,6 @@ class WidgetGallery(QDialog):
         mainLayout = QGridLayout()
         mainLayout.addLayout(topLayout, 0, 0, 1, 4)
         mainLayout.addWidget(self.searchResults, 1, 0)                
-        #mainLayout.setRowStretch(1, 1)
-        #mainLayout.setRowStretch(2, 1)
-        #mainLayout.setColumnStretch(0, 1)
-        #mainLayout.setColumnStretch(1, 1)
         self.setLayout(mainLayout)
 
         self.setWindowTitle("MSID Live Search")
@@ -111,22 +98,33 @@ class WidgetGallery(QDialog):
         
 
     def doSearch(self, text):
-        q = self.qp.parse(text)          # build query
-        with self.ix.searcher(weighting = scoring.Frequency) as s:    # simple scorer may help
-            c = s.collector(limit=self.MaxResults)
-            c = TimeLimitCollector(c,0.5)
+        q = self.qp.parse(text)          # build query with event-provided search key
+        with self.ix.searcher(weighting = scoring.BM25F) as s:    # there are several NLP style scorers for Whoosh
+            c = s.collector(limit=self.MaxResults)                # The "collector" allows setting the timeout for a search. In this case it's 0.5 seconds which is a little long...
+            c = TimeLimitCollector(c,0.5)               
             try:
                 s.search_with_collector(q,c)
             except:
-                print("TIMEOUT!")
-            results = c.results()            # partial results if hung                
-            self.searchResults.clear()
+                print("TIMEOUT!")                       # DEBUG out put to console if we're timing out a lot  
+            results = c.results()                       # If we do get a timeout, still return whatever we've got, i.e. partial results 
+                                                        #-----------------------------------------------------
+            self.searchResults.clear()                  # ** Now format the results for display ** 
+            results.fragmenter = WholeFragmenter()      # we want the full technical name not just the local context.
             if len(results)> 0:                
-                for res in results:    
-                    self.searchResults.append(res['msid'] + ' - ' + res['technical_name'])
-                    #self.searchResults.append(res['MSID'] + ' - ' + res['TECHNICAL_NAME'])
-            cursor = self.searchResults.moveCursor(QtGui.QTextCursor.Start)            
-            #self.searchResults.setTextCursor(cursor)
+                for res in results:                
+                    HighLightedMsid = res.highlights('msid')  # construct MSID string with highlights, if that's where the match is... 
+                    if len(HighLightedMsid) >0:
+                        msid_str = HighLightedMsid
+                    else:
+                        msid_str = res['msid']
+                    HighLightedTechName = res.highlights('technical_name')  # construct technical_name string with highlights, if relevant
+                    if len(HighLightedTechName) >0:
+                        tech_str = HighLightedTechName
+                    else:
+                        tech_str = res['technical_name']
+                    self.searchResults.append(msid_str + ' - ' + tech_str)
+            cursor = self.searchResults.moveCursor(QtGui.QTextCursor.Start)     # return cursor to beginning of search results     
+            
 
     def changePalette(self):
         if (self.useStylePaletteCheckBox.isChecked()):
