@@ -23,3 +23,10 @@ See cmd line help below
       -s S                  Specify the searchable fields. May be specified multiple times
       --nMin NMIN           Specify min nGram size, default is 3
       --nMax NMAX           Specify max nGram size, default is 8
+      
+  ### SearcherGUI_Ngram.py
+   ** CommandLine version Coming SOON! **
+  
+  ### SearcherGUI_Ngram_MAUDE.py
+   ** Demo of Searchable MAUDE client **
+   
