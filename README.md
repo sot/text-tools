@@ -41,6 +41,7 @@ Just run from the command line
 ### WhooshWrap.py
 ** Whoosh Wrapper class that hides low-level API for search clients.  
 Requires an existing index
+
 Methods:
 
     def __init__(self,MSID_index_dir, Searchable):
