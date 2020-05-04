@@ -147,7 +147,7 @@ class WidgetGallery(QDialog):
         self.changePalette()
         
     def QueryMaudeTimer(self):
-        numMaude = min(10,len(self.results))
+        numMaude = min(8,len(self.results))
         if len(self.results) > 0:
             MaudeVals = getLatestValues(self.results[0:numMaude],self.MaudeList)
             self.MaudeResults.clear()
@@ -155,7 +155,7 @@ class WidgetGallery(QDialog):
                 self.MaudeResults.append(MaudeVals[res.upper()])
             cursor = self.MaudeResults.moveCursor(QtGui.QTextCursor.Start)     # return cursor to beginning of search results     
         self.results = [] # once displayed clear results to disable redundant queries
-        self.timer.start(500)
+        self.timer.start(1000)
         
     def doSearch(self, text):
         q = self.qp.parse(text)          # build query with event-provided search key

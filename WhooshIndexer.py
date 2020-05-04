@@ -21,16 +21,9 @@ def get_parser():
     parser.add_argument('-s', default=[],action='append', help='Specify the searchable fields.  May be specified multiple times')
     parser.add_argument('--nMin', default=3,type=int,help='Specify min nGram size, default is 3')
     parser.add_argument('--nMax', default=8,type=int,help='Specify max nGram size, default is 8')
-    parser.add_argument('infiles',  nargs='+', help='Specify a set of .csv  files to add to the index.')
+    parser.add_argument('WhooshIdx',  nargs='+', help='Specify a set of .csv  files to add to the index.')
  
     return parser
-
-
-parser = argparse.ArgumentParser(description='Short sample app')
-
-parser.add_argument('-a', action="store_true", default=False)
-parser.add_argument('-c', action="store", dest="c", type=int)
-parser.add_argument('-b', action="store", dest="b")
 
 
 def main():
@@ -58,7 +51,7 @@ def main():
     writer.commit(mergetype=writing.CLEAR,optimize=True)                      # Erase the index to start from scratch
     writer = ix.writer() 
     for cur_file in MSID_CSV_fnames:
-        with open(cur_file, newline='') as csvfile:
+        with open(cur_file, newline='',encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             fieldnames = reader.fieldnames 
             for field in fieldnames:
@@ -69,12 +62,18 @@ def main():
                         writer.add_field(field, TEXT(stored=True))
         writer.commit(optimize=True)
         writer = ix.writer() 
+    idx_cnt = 0
     for cur_file in MSID_CSV_fnames:
         print('Indexing %s' % cur_file)
-        with open(cur_file, newline='') as csvfile:    
+        with open(cur_file, newline='',encoding='utf-8') as csvfile:    
             reader = csv.DictReader(csvfile)   
-            for row in reader:                
-                writer.add_document(**row)        
+            for row in reader:  
+                idx_cnt += 1            
+                writer.add_document(**row)       
+                last_row = row
+                if idx_cnt % 1000 == 0:
+                    print(idx_cnt)
+    print('Indexing Done, committing changes to disk')
     writer.commit()
  
 if __name__ == "__main__":

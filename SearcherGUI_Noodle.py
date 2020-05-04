@@ -46,12 +46,24 @@ from PyQt5.QtCore import QDateTime, Qt, QTimer
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit,
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
         QProgressBar, QPushButton, QRadioButton, QScrollBar, QSizePolicy,
-        QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,
+        QSlider, QSpinBox, QStyleFactory, QTableWidget, QTabWidget, QTextEdit,QTextBrowser,
         QVBoxLayout, QWidget)
 from WhooshWrap import WhooshWrap
 
+import argparse
+
+def get_parser():
+    """
+    Creates a new argument parser.
+    """
+    parser = argparse.ArgumentParser('WhooshNoodle')
+    parser.add_argument('-N', default=10,type=int,help='Specify max number of results to return')
+    parser.add_argument('idx_loc', help='Specify path to Whoosh Index')
+ 
+    return parser
+
 class WidgetGallery(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self,idx_loc,num_res, parent=None):
         super(WidgetGallery, self).__init__(parent)
 
         self.originalPalette = QApplication.palette()
@@ -62,19 +74,20 @@ class WidgetGallery(QDialog):
         searchLabel = QLabel("&Search:")
         searchLabel.setBuddy(searchTextBox)
         # Whoosh constructs       
-        MSID_index_dir = 'CDB_IDX'
-        Searchable = ('msid','technical_name','description')    
-        self.MaxResults = 100
+        NOODLE_index_dir = idx_loc
+        Searchable = ('Name','Path')    
+        self.MaxResults = num_res
         self.Timeout = 0.5
-        self.WhooshWrapper = WhooshWrap(MSID_index_dir,Searchable,self.MaxResults,self.Timeout) # set up searcher and collector once    
+        self.WhooshWrapper = WhooshWrap(NOODLE_index_dir,Searchable,self.MaxResults,self.Timeout) # set up searcher and collector once             
         searchTextBox.textChanged[str].connect(self.doSearch)            # hook up as-you-type event to query function
         
         # QT widgets,  layout and style
         self.useStylePaletteCheckBox = QCheckBox("&Use style's standard palette")
         self.useStylePaletteCheckBox.setChecked(True)
         self.useStylePaletteCheckBox.toggled.connect(self.changePalette)
-        self.searchResults = QTextEdit()
-        
+        self.searchResults = QTextBrowser() #QTextEdit()
+        self.searchResults.setOpenExternalLinks(True)
+        self.searchResults.setFontPointSize(14)
         topLayout = QHBoxLayout()
         topLayout.addWidget(searchLabel)
         topLayout.addWidget(searchTextBox)
@@ -84,16 +97,19 @@ class WidgetGallery(QDialog):
         mainLayout.addWidget(self.searchResults, 1, 0)                
         self.setLayout(mainLayout)
 
-        self.setWindowTitle("MSID Live Search")
+        self.setWindowTitle("Noodle Live Search")
         QApplication.setStyle(QStyleFactory.create("Fusion"))
         self.changePalette()
         
 
     def doSearch(self, text):
-        CurResults = self.WhooshWrapper.doSearch(text,['msid','technical_name'])   # perform Search, use wrapper dict return so Whoosh API is totally hidden        
+        CurResults = self.WhooshWrapper.doSearch(text,['Name','Path'])   # perform Search, use wrapper dict return so Whoosh API is totally hidden        
         self.searchResults.clear()
-        for msid,tech_name in zip(CurResults['msid'],CurResults['technical_name']):  
-            self.searchResults.append(msid + ' - ' + tech_name)           
+        for path,name in zip(CurResults['Path'],CurResults['Name']):
+            resStr = 'https://occweb.cfa.harvard.edu/occweb/'+path[9:] + '/' + name
+            resStr = resStr.replace('\\','/')
+            hyperlink = '<a href=\"'+resStr+'\">'+resStr+ '</a>'
+            self.searchResults.append(hyperlink)      
         cursor = self.searchResults.moveCursor(QtGui.QTextCursor.Start)     # return cursor to beginning of search results     
             
 
@@ -114,8 +130,14 @@ class WidgetGallery(QDialog):
 if __name__ == '__main__':
 
     import sys
+    parser = get_parser()
+    args = parser.parse_args()
+    max_results = args.N
+    idx_loc = args.idx_loc
 
     app = QApplication(sys.argv)
-    gallery = WidgetGallery()
+    gallery = WidgetGallery(idx_loc,max_results)
+    gallery.setGeometry(100,100,1000,500)
+    gallery.setFont(QtGui.QFont("Arial", 11)); 
     gallery.show()
     sys.exit(app.exec_()) 
