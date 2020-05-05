@@ -6,7 +6,7 @@ Tools for indexing, searching and analyzing textual info
   * Available by "pip install whoosh"
 * PyQT5 for graphical front ends
   * available by "pip install PyQt5"
-* python3+
+* python3.6+
 
 ### WhooshIndexer.py
 Creates an index from .csv files for use with search-as-you-type clients
