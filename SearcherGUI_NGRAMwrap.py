@@ -62,7 +62,7 @@ class WidgetGallery(QDialog):
         searchLabel = QLabel("&Search:")
         searchLabel.setBuddy(searchTextBox)
         # Whoosh constructs       
-        MSID_index_dir = 'CDB_IDX'
+        MSID_index_dir = 'TestTDB'
         Searchable = ('msid','technical_name','description')    
         self.MaxResults = 100
         self.Timeout = 0.5

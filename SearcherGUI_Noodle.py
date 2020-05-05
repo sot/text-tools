@@ -56,7 +56,7 @@ def get_parser():
     """
     Creates a new argument parser.
     """
-    parser = argparse.ArgumentParser('WhooshNoodle')
+    parser = argparse.ArgumentParser('SearcherGUI_Noodle.py')
     parser.add_argument('-N', default=10,type=int,help='Specify max number of results to return')
     parser.add_argument('idx_loc', help='Specify path to Whoosh Index')
  
@@ -108,6 +108,7 @@ class WidgetGallery(QDialog):
         for path,name in zip(CurResults['Path'],CurResults['Name']):
             resStr = 'https://occweb.cfa.harvard.edu/occweb/'+path[9:] + '/' + name
             resStr = resStr.replace('\\','/')
+            resStr = resStr.replace('fot','FOT',1)
             hyperlink = '<a href=\"'+resStr+'\">'+resStr+ '</a>'
             self.searchResults.append(hyperlink)      
         cursor = self.searchResults.moveCursor(QtGui.QTextCursor.Start)     # return cursor to beginning of search results     

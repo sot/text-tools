@@ -21,7 +21,7 @@ def get_parser():
     parser.add_argument('-s', default=[],action='append', help='Specify the searchable fields.  May be specified multiple times')
     parser.add_argument('--nMin', default=3,type=int,help='Specify min nGram size, default is 3')
     parser.add_argument('--nMax', default=8,type=int,help='Specify max nGram size, default is 8')
-    parser.add_argument('WhooshIdx',  nargs='+', help='Specify a set of .csv  files to add to the index.')
+    parser.add_argument('infiles',  nargs='+', help='Specify a set of .csv  files to add to the index.')
  
     return parser
 
