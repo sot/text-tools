@@ -42,6 +42,7 @@
 #############################################################################
 
 from PyQt5 import QtGui
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QDateTime, Qt, QTimer
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDateTimeEdit,
         QDial, QDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
@@ -85,13 +86,15 @@ class WidgetGallery(QDialog):
         self.useStylePaletteCheckBox = QCheckBox("&Use style's standard palette")
         self.useStylePaletteCheckBox.setChecked(True)
         self.useStylePaletteCheckBox.toggled.connect(self.changePalette)
-        self.searchResults = QTextBrowser() #QTextEdit()
-        self.searchResults.setOpenExternalLinks(True)
-        self.searchResults.setFontPointSize(14)
+        self.searchResults = QTextBrowser() #QTextEdit() 
         pal = QtGui.QPalette()
         bgc = QtGui.QColor(225, 225, 225)
         pal.setColor(QtGui.QPalette.Base, bgc)
         self.searchResults.setPalette(pal)
+        self.searchResults.anchorClicked.connect(self.onAnchorClicked) 
+        self.searchResults.setOpenLinks(False)
+        self.searchResults.setOpenExternalLinks(True)
+        self.searchResults.setFontPointSize(14)
         topLayout = QHBoxLayout()
         topLayout.addWidget(searchLabel)
         topLayout.addWidget(searchTextBox)
@@ -105,12 +108,17 @@ class WidgetGallery(QDialog):
         QApplication.setStyle(QStyleFactory.create("Fusion"))
         self.changePalette()
         
+    def onAnchorClicked(self, url):
+        print("in anchorClicked: url=",url)    
+        QtGui.QDesktopServices.openUrl(url)
 
     def doSearch(self, text):
         CurResults = self.WhooshWrapper.doSearch(text,['Name','Path'])   # perform Search, use wrapper dict return so Whoosh API is totally hidden        
         self.searchResults.clear()
         for path,name in zip(CurResults['Path'],CurResults['Name']):
-            resStr = 'https://occweb.cfa.harvard.edu/occweb/'+path[9:] + '/' + name
+           #resStr = 'https://occweb.cfa.harvard.edu/occweb/'+path[9:] + '/' + name
+            #resStr = resStr.replace('\\','/')
+            resStr = 'file://'+ path[2:] + '\\' + name
             resStr = resStr.replace('\\','/')
             resStr = resStr.replace('fot','FOT',1)
             hyperlink = '<a href=\"'+resStr+'\">'+resStr+ '</a>'
